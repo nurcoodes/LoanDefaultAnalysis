@@ -1,0 +1,267 @@
+---
+title: "Logistic Regression Analysis"
+author: "Nur Ahmed"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction (4 points)
+
+In this analysis, we look at data gathered from loan borrowers to assess their risk of default and seeking valuable insight on these risk assessments, whether or not they seem reasonable or make sense. The general purpose of my analysis is to see how big of an influence these variables factored in loan default.
+
+```{r dataimport}
+loanDefaultData<-read.csv("LoanDefaultData.csv")
+```
+
+# The Variables (8 points)
+
+The variables available for this analysis are:
+
+### Response:
+- Default (Binary/Categorical): This records whether the loan defaulted or not. This is the variable we seek to predict with our logistic regression model.
+
+```{r default}
+table(loanDefaultData$Default)
+```
+
+### Predictors:
+
+```{r names}
+names(loanDefaultData)
+```
+- Age (Numeric): This records the age of the borrower in years. The standard deviation is 14.96 years and the mean is 43.74 years.
+
+```{r agesd}
+sd(loanDefaultData$Age)
+```
+
+```{r agemean}
+mean(loanDefaultData$Age)
+```
+
+```{r age}
+hist(loanDefaultData$Age, main="Age Distribution", xlab="Age", freq = FALSE)
+```
+
+- Income (Numeric): This records the yearly income of the borrower in dollars ($). The standard deviation is 39177.07 and the mean is 82351.62
+
+```{r incomesd}
+sd(loanDefaultData$Income)
+```
+
+```{r incomemean}
+mean(loanDefaultData$Income)
+```
+
+```{r income}
+hist(loanDefaultData$Income, main="Income Distribution", xlab="Income", freq = FALSE)
+```
+- LoanAmount (Numeric): The amount of money being borrowed in dollars ($). The standard deviation is 70830.42 and the mean is 128733.50
+
+```{r loansd}
+sd(loanDefaultData$LoanAmount)
+```
+
+```{r loanmean}
+mean(loanDefaultData$LoanAmount)
+```
+
+```{r loan}
+hist(loanDefaultData$LoanAmount, main="Loan Distribution", xlab="Loan Amount", freq = FALSE)
+```
+- CreditScore (Numeric): The credit score of the borrower. The standard deviation is 159.42 and the mean is 575.07
+
+```{r creditsd}
+sd(loanDefaultData$CreditScore)
+```
+
+```{r creditmean}
+mean(loanDefaultData$CreditScore)
+```
+
+```{r credit}
+hist(loanDefaultData$CreditScore, main="Credit Distribution", xlab="Credit Score", freq = FALSE)
+```
+- MonthsEmployed (Numeric): The number of months the borrower has been employed. The standard deviation is 34.1 months and the mean is 60.16 months
+
+```{r monthsd}
+sd(loanDefaultData$MonthsEmployed)
+```
+
+```{r monthmean}
+mean(loanDefaultData$MonthsEmployed)
+```
+
+```{r month}
+hist(loanDefaultData$MonthsEmployed, main="Employment Length Distribution", xlab="Months Employed", freq = FALSE)
+```
+- NumCreditLines (Numeric): The number of credit lines the borrower has open. The standard deviation is 1.12 and the mean is 2.47
+
+```{r numcreditsd}
+sd(loanDefaultData$NumCreditLines)
+```
+
+```{r numcreditmean}
+mean(loanDefaultData$NumCreditLines)
+```
+
+```{r numcredit}
+hist(loanDefaultData$NumCreditLines, main="Credit Line Distribution", xlab="Number of Credit Lines", freq = FALSE)
+```
+- InterestRate (Numeric): The interest rate for the loan. The standard deviation is 6.66% and the mean is 13.61%
+
+```{r interestsd}
+sd(loanDefaultData$InterestRate)
+```
+
+```{r interestmean}
+mean(loanDefaultData$InterestRate)
+```
+
+```{r interest}
+hist(loanDefaultData$InterestRate, main="Interest Distribution", xlab="Interest Rate", freq = FALSE)
+```
+- LoanTerm (Numeric): The term length of the loan in months. The standard deviation is 16.94 months and the mean is 36.04 months
+
+```{r termsd}
+sd(loanDefaultData$LoanTerm)
+```
+
+```{r termmean}
+mean(loanDefaultData$LoanTerm)
+```
+
+```{r term}
+hist(loanDefaultData$LoanTerm, main="Loan Duration Distribution", xlab="Loan Term", freq = FALSE)
+```
+- Education (Categorical): The highest level of education attained by the borrower. 
+
+```{r edu}
+table(loanDefaultData$Education)
+```
+- EmploymentType (Categorical): The type of employment status of the borrower. 
+
+```{r emp}
+table(loanDefaultData$EmploymentType)
+```
+- MaritalStatus (Categorical): The marital status of the borrower. 
+
+```{r mstatus}
+
+table(loanDefaultData$MaritalStatus)
+```
+- HasCoSigner (Binary/Categorical): Whether the loan has a co-signer.
+
+```{r cosigner}
+table(loanDefaultData$HasCoSigner)
+```
+
+# Model Fitting (12 points)
+
+Here I utilize AIC scoring to determine the best model. I chose CreditScore and Age as my specfic interest due to my guess being those are the major influence predictors. I chose to step back with my model under the assumption that the model would incorporate most values in the data.
+```{r model fitting}
+fullmodel=glm(Default ~ ., data=loanDefaultData, family = "binomial")
+
+basicmodel=glm(Default ~ CreditScore+Age, data=loanDefaultData, family = "binomial")
+```
+
+```{r steps2}
+step(fullmodel, 
+     scope=list(lower=basicmodel, upper=fullmodel), 
+     direction='backward', steps=25)
+```
+Here, I decided to explore interaction terms with Age and CreditScore.
+```{r model interactions}
+current.model=glm(Default ~ Age + Income + LoanAmount + CreditScore + MonthsEmployed + NumCreditLines + InterestRate + EmploymentType + MaritalStatus + HasCoSigner, data=loanDefaultData, family = "binomial")
+
+interactions.model=glm(Default ~ (CreditScore+Age)*(Income + LoanAmount + MonthsEmployed + NumCreditLines + InterestRate + EmploymentType + MaritalStatus + HasCoSigner), data=loanDefaultData, family = "binomial")
+```
+
+```{r steps3}
+step(current.model, 
+     scope=list(lower=current.model, upper=interactions.model), 
+     direction='forward', steps=25)
+```
+I assessed that moving forward would be more efficient thinking much interactions wouldn't be made which concluded with an interaction between Age and EmploymentType.
+
+```{r model interactions2}
+current.model=glm(formula = Default ~ Age + Income + LoanAmount + CreditScore +
+    MonthsEmployed + NumCreditLines + InterestRate + EmploymentType + 
+    MaritalStatus + HasCoSigner + Age:EmploymentType, family = "binomial", 
+    data = loanDefaultData)
+```
+
+I assess the current model with the significance of the terms
+```{r model summary}
+summary(current.model)
+```
+I conclude that Age and MaritalStatusSingle had no significance, but have decided to keep them in my final model due to my Age:EmploymentType interaction and the significance for MaritalStatusMarried in the MaritalStatus variable.
+```{r final model}
+final.model = glm(formula = Default ~ Age + Income + LoanAmount + CreditScore +
+    MonthsEmployed + NumCreditLines + InterestRate + EmploymentType + 
+    MaritalStatus + HasCoSigner + Age:EmploymentType, family = "binomial", 
+    data = loanDefaultData)
+
+summary(final.model)
+```
+
+    
+# Model summary (8 points)
+
+log-odds(Default)=
+0.2083477
++0.9884259*(Age)
++0.9999933*(Income)
++1.0000031*(LoanAmount)
++0.9987945*(CreditScore)
++0.9907240*(MonthsEmployed)
++1.1544144*(NumCreditLines)
++1.0659012*(InterestRate)
++3.3967974*(EmploymentTypePart-time)
++6.5377859*(EmploymentTypeSelf-employed)
++6.8644685*(EmploymentTypeUnemployed)
++0.7399581*(MaritalStatusMarried)
++0.9506527*(MaritalStatusSingle)
++0.7173221*(HasCoSignerYes)
++0.9765642*(Age:EmploymentTypePart-time)
++0.9638929*(Age:EmploymentTypeSelf-employed)
++0.9659194*(Age:EmploymentTypeUnemployed)
+
+The final resulting model found was:
+
+The effect on the odds of each of the terms are listed below.
+
+```{r odds}
+summary
+oddsimpact = exp(final.model$coefficients)
+oddsimpact
+```
+
+Note: The baseline individual in this study is Employed Full-time and Divorced
+
+# Conclusion (8 points)
+
+### Key Predictors
+- Age: Every year increase in age decreases the odds by 1.2%
+- Employment Type: Being unemployed, you are 6.9 times more likely to default compared to Full-time. Part-time and Self-Employed are 3.4 and 6.5 times more likely to default than Full-time respectively. This makes sense since Full-time employed borrowers have an active source income meaning less risk compared to others.
+
+- CreditScore: Each point increase in credit decreases the odds by 0.12%. This makes sense because the purpose of credit is to assess creditworthiness. However, this change isn't super significant which goes to show that this is just one of the many factors that influences loan default.
+
+- MonthsEmployed: Each additional month of employment decreases the odds by 0.93%. This also makes sense because the longer you had been employed shows the financial stability and consistent earned income.
+
+- NumCreditLines: Each additional credit lines increases the odds by 15.4%. This makes sense because multiple credit lines can lead to more debt.
+
+- InterestRate: Each percentage increase in the interest rate increases the odds by 6.6%. This checks out because higher interest rates leads to higher payments making loans harder to manage.
+
+- MaritalStatus: Being married decreases the odds of default by 26% and being single decreases it by 4.9% compared to being divorced. This makes sense because married couples can support each others finances. My reasoning for why a single person may have a decreased odd compared to a divorced person would be because of divorce settlements and significant changes when it comes to finances but then again, this is a less significant decrease than it is being married.
+
+- HasCoSigner: Having a cosigner decreases the odds of default by 28.3%. This makes sense in why the odds decrease similar to marital status due to having another person financially support you.
+
+- Age:EmploymentType: This interaction indicates for every unit increase for age as Part-time is a 2.3% decrease, 3.6% for Self-employed, and 3.4% for unemployed in odds. I found this to be quite confusing but I think there seems to be more of an impact in age than the baseline because it is more acceptable accruing finances at an older age while not working.
+
+All in all, the predictors that positively impacted the default odds were the number of credit lines open, interest rates, being self-employed, being unemployed, and being part-time. Predictors that negatively impacted the default odds were your age, credit score, months employed, being married, having a cosigner, and the interactions between age and employment status (part-time, self-employed, and unemployed).
+
